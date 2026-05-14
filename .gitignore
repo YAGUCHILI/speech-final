@@ -1,0 +1,9 @@
+__pycache__/
+
+assets/
+logs/
+lwt/
+*.wav
+*.pth
+*.bat
+*.npy
