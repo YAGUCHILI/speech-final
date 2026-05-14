@@ -8,8 +8,8 @@ import faiss
 from tqdm import tqdm
 
 # ============ 配置 ============
-inp_root = r"./logs/my_models2/3_feature768"
-output_dir = r"./logs/my_models2"
+inp_root = r"./logs/my_models3/3_feature768"
+output_dir = r"./logs/my_models3"
 feature_dim = 768
 
 # 根据数据量自动调整参数

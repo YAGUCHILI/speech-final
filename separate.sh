@@ -2,7 +2,7 @@ mkdir -p vocals accoms merged
 
 # 1. 分离人声和伴奏
 echo "开始分离音频..."
-for audio in test-audio/*.wav; do
+for audio in lwt/*.wav; do
     if [ -f "$audio" ]; then
         filename=$(basename "$audio")
         echo "分离: $filename"

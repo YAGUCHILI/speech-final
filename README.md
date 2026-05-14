@@ -136,6 +136,9 @@
 10. 推理:
 - 首先生成index特征索引文件.
 - 代码在`tools/infer/train-index-v2.py`中,其中参数的设置与数据量(特征量)和电脑显存都有关系,建议直接问ai调整参数,或者先试试这个代码里自动调参合适不合适,如果卡死了就立刻停止调参吧.
+```bash
+python tools/infer/train-index-v2.py
+```
 - 最后用到的是added开头的index文件.在`logs/你的模型名字`里
 - 推理脚本是`myinfer-v2.py`,我修改了一下脚本,强制输出到predicts目录.
 - 先把自己想听的歌放到`test-audio`里,然后运行`separate.sh`,会将人声分离到`vocals`目录,伴奏分离到`accoms`目录.

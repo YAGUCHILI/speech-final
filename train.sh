@@ -102,6 +102,7 @@ python infer/modules/train/train.py \
     -c 0 \
     -pg assets/pretrained_v2/f0G${SR}.pth \
     -pd assets/pretrained_v2/f0D${SR}.pth \
-    -g $GPU
+    -g $GPU \
+    -sw 1
 
 echo "训练完成，最终模型已保存在assets/weights目录下"
