@@ -3,6 +3,7 @@ __pycache__/
 assets/
 logs/
 lwt/
+mdx_extra/
 *.wav
 *.pth
 *.bat

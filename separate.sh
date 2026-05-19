@@ -1,8 +1,22 @@
 mkdir -p vocals accoms merged
+config_file="config.sh"
+
+if [ -f "$config_file" ]; then
+    source "$config_file"
+else
+    echo "错误: 找不到配置文件 $config_file"
+    exit 1
+fi
+
+# 检查 INPUT_WAV 是否已定义
+if [ -z "$INPUT_WAV" ]; then
+    echo "错误: config.sh 中未定义 INPUT_WAV 变量"
+    exit 1
+fi
 
 # 1. 分离人声和伴奏
 echo "开始分离音频..."
-for audio in lwt/*.wav; do
+for audio in "$INPUT_WAV"/*.wav; do
     if [ -f "$audio" ]; then
         filename=$(basename "$audio")
         echo "分离: $filename"
@@ -24,4 +38,3 @@ done
 # 清理临时文件
 rm -rf separated
 echo "分离完成！人声在 vocals/，伴奏在 accoms/"
-
