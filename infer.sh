@@ -50,13 +50,31 @@ echo "[步骤2/4] 分离人声和伴奏..."
 chmod +x separate.sh
 ./separate.sh
 
-# 步骤3: 批量推理（处理 vocals 目录下的所有文件）
+# 步骤3: 批量推理（处理人声和伴奏都存在的所有文件）
 echo "[步骤3/4] 开始批量推理..."
+
+# 先获取 vocals 和 accoms 的文件名集合
+shopt -s nullglob
+vocal_files=("$VOCAL_DIR"/*.wav)
+accom_files=("$ACCOM_DIR"/*.wav)
+
+# 提取文件名（不含扩展名）到关联数组
+declare -A accom_map
+for accom_file in "${accom_files[@]}"; do
+    filename=$(basename "$accom_file" .wav)
+    accom_map["$filename"]="$accom_file"
+done
 
 for vocal_file in "$VOCAL_DIR"/*.wav; do
     if [ -f "$vocal_file" ]; then
         # 提取文件名（不含扩展名和路径）
         filename=$(basename "$vocal_file" .wav)
+
+        # 检查伴奏文件是否存在
+        if [[ -z "${accom_map[$filename]}" ]]; then
+            echo "警告: 找不到 $filename 的伴奏文件，跳过人声: $vocal_file"
+            continue
+        fi
         
         # 定义对应的文件路径
         accom_file="$ACCOM_DIR/${filename}.wav"
@@ -76,21 +94,22 @@ for vocal_file in "$VOCAL_DIR"/*.wav; do
         # 推理
         echo "推理人声: $vocal_file"
         python myinfer-v2.py \
-            $SPEAKER_ID \
+            $PITCH_SHIFT \
             "$vocal_file" \
             "$INDEX_FILE" \
             "$F0_METHOD" \
             "$predict_file" \
             "$MODEL_WEIGHT" \
-            $CLUSTER_RATIO \
+            $INDEX_RATE \
             "$DEVICE" \
-            "$F0_GUIDE" \
-            $AUTO_PREDICT \
-            $PITCH_SHIFT \
-            $PAD_INPUT \
-            $THREADS \
-            $NOISE_SCALE
-        
+            "$IS_HALF" \
+            $FILTER_RADIUS \
+            48000 \
+            $RMS_MIX_RATE \
+            $PROTECT
+
+
+                
         if [ $? -ne 0 ]; then
             echo "错误: $filename 推理失败"
             continue

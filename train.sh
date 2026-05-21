@@ -199,13 +199,13 @@ echo "=== 开始训练 ==="
 echo "实验名称: $EXP_NAME"
 echo "批次大小: $BATCH_SIZE"
 echo "总轮数: $TOTAL_EPOCH"
-echo "保存频率: $SAVE_EVERY"
+echo "保存频率: $SAVE_EVERY_EPOCH"
 
 python infer/modules/train/train.py \
     -e $EXP_NAME \
     -bs $BATCH_SIZE \
     -te $TOTAL_EPOCH \
-    -se $SAVE_EVERY \
+    -se $SAVE_EVERY_EPOCH \
     -sr $SR \
     -v $VERSION \
     -f0 1 \
