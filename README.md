@@ -9,18 +9,8 @@
 ├── .gitignore
 ├── README.md
 ├── assets # 预训练模型和最终输出模型所在文件夹（因为太大未git）
-├── config.py
 ├── config.sh # 一键训练和一键推理的配置，全部参数和路径可以在这里调！不需要在脚本里找代码
 ├── configs # 配置
-│   ├── config.json
-│   ├── config.py
-│   ├── v1
-│   │   ├── 32k.json
-│   │   ├── 40k.json
-│   │   └── 48k.json
-│   └── v2
-│       ├── 32k.json
-│       └── 48k.json
 ├── i18n
 ├── infer 
 │   ├── lib
@@ -32,19 +22,14 @@
 │   │   └── train
 │   └── modules
 │       ├── ipex
-│       ├── onnx
 │       ├── train # 训练使用代码
-│       └── vc 
-├── merge.sh # 将ai人声与伴奏音轨合并的工具
+│       └── uvr5 
 ├── myinfer-v2.py # 推理用文件
 ├── requirements.txt # 注意 版本可能与环境不兼容，这个requirements是我使用的可运行环境
-├── rvc # 数据集 .wav格式
 ├── separate.sh # 将音乐分离人声与伴奏
 ├── test-audio # 测试音乐（人声与伴奏未分离版）
 ├── tools
 │   ├── download_models.py # 官方给出下载模型的代码
-│   ├── infer
-│   └── torchgate
 ├── train-index-v2.py # 生成index特征索引文件的代码
 ├── train.sh  # 一键训练（预处理、特征提取、生成索引文件、训练模型并保存）
 ├── infer.sh # 一键推理，不需要再运行很多文件了，只需要把配置设置好
