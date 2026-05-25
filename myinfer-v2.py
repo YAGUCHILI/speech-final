@@ -88,6 +88,11 @@ resample_sr = int(sys.argv[11])
 rms_mix_rate = float(sys.argv[12])
 protect = float(sys.argv[13])
 
+if f0method != "rmvpe":
+    raise ValueError(
+        f"Only rmvpe is supported in this simplified inference script, got: {f0method}"
+    )
+
 print(sys.argv)
 
 # 初始化配置
@@ -96,10 +101,7 @@ config = Config(device, is_half)
 # 导入模块
 from vc_infer_pipeline import Pipeline
 from infer.lib.infer_pack.models import (
-    SynthesizerTrnMs256NSFsid,
-    SynthesizerTrnMs256NSFsid_nono,
     SynthesizerTrnMs768NSFsid,
-    SynthesizerTrnMs768NSFsid_nono,
 )
 from infer.lib.audio import load_audio
 from fairseq import checkpoint_utils
@@ -185,18 +187,18 @@ def get_vc(model_path):
     tgt_sr = cpt["config"][-1]
     cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]  # n_spk
     if_f0 = cpt.get("f0", 1)
-    version = cpt.get("version", "v1")
-    
-    if version == "v1":
-        if if_f0 == 1:
-            net_g = SynthesizerTrnMs256NSFsid(*cpt["config"], is_half=is_half)
-        else:
-            net_g = SynthesizerTrnMs256NSFsid_nono(*cpt["config"])
-    elif version == "v2":
-        if if_f0 == 1:
-            net_g = SynthesizerTrnMs768NSFsid(*cpt["config"], is_half=is_half)
-        else:
-            net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
+    version = cpt.get("version", "v2")
+
+    if version != "v2":
+        raise ValueError(
+            f"Only version 'v2' is supported in this simplified inference script, got: {version}"
+        )
+    if if_f0 != 1:
+        raise ValueError(
+            f"Only f0-enabled models are supported in this simplified inference script, got f0={if_f0}"
+        )
+
+    net_g = SynthesizerTrnMs768NSFsid(*cpt["config"], is_half=is_half)
     
     del net_g.enc_q
     print(net_g.load_state_dict(cpt["weight"], strict=False))

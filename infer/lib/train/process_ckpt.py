@@ -1,5 +1,4 @@
 import os
-import sys
 import traceback
 from collections import OrderedDict
 
@@ -9,9 +8,58 @@ from i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
 
+V2_48K_CONFIG = [
+    1025,
+    32,
+    192,
+    192,
+    768,
+    2,
+    6,
+    3,
+    0,
+    "1",
+    [3, 7, 11],
+    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+    [12, 10, 2, 2],
+    512,
+    [24, 20, 4, 4],
+    109,
+    256,
+    48000,
+]
+
+
+def _require_supported_settings(sr, version, if_f0):
+    if sr != "48k":
+        raise ValueError(
+            f"Only 48k is supported in this simplified checkpoint script, got: {sr}"
+        )
+    if version != "v2":
+        raise ValueError(
+            f"Only version 'v2' is supported in this simplified checkpoint script, got: {version}"
+        )
+    if int(if_f0) != 1:
+        raise ValueError(
+            f"Only f0-enabled models are supported in this simplified checkpoint script, got f0={if_f0}"
+        )
+
+
+def _extract_weight_dict(ckpt):
+    if "model" in ckpt:
+        ckpt = ckpt["model"]
+    opt = OrderedDict()
+    opt["weight"] = {}
+    for key in ckpt.keys():
+        if "enc_q" in key:
+            continue
+        opt["weight"][key] = ckpt[key].half()
+    return opt
+
 
 def savee(ckpt, sr, if_f0, name, epoch, version, hps):
     try:
+        _require_supported_settings(sr, version, if_f0)
         opt = OrderedDict()
         opt["weight"] = {}
         for key in ckpt.keys():
@@ -38,18 +86,16 @@ def savee(ckpt, sr, if_f0, name, epoch, version, hps):
             hps.model.gin_channels,
             hps.data.sampling_rate,
         ]
-        opt["info"] = "%sepoch" % epoch
+        opt["info"] = f"{epoch}epoch"
         opt["sr"] = sr
         opt["f0"] = if_f0
         opt["version"] = version
 
-        clean_name = os.path.basename(name)  # 提取文件名部分
+        clean_name = os.path.basename(name)
         save_dir = "assets/weights"
-        os.makedirs(save_dir, exist_ok=True)  # 确保目录存在
+        os.makedirs(save_dir, exist_ok=True)
         save_path = os.path.join(save_dir, f"{clean_name}.pth")
-        
         torch.save(opt, save_path)
-        # torch.save(opt, "assets/weights/%s.pth" % name)
         return "Success."
     except:
         return traceback.format_exc()
@@ -58,7 +104,7 @@ def savee(ckpt, sr, if_f0, name, epoch, version, hps):
 def show_info(path):
     try:
         a = torch.load(path, map_location="cpu")
-        return "模型信息:%s\n采样率:%s\n模型是否输入音高引导:%s\n版本:%s" % (
+        return "妯″瀷淇℃伅:%s\n閲囨牱鐜?%s\n妯″瀷鏄惁杈撳叆闊抽珮寮曞:%s\n鐗堟湰:%s" % (
             a.get("info", "None"),
             a.get("sr", "None"),
             a.get("f0", "None"),
@@ -70,129 +116,15 @@ def show_info(path):
 
 def extract_small_model(path, name, sr, if_f0, info, version):
     try:
+        _require_supported_settings(sr, version, if_f0)
         ckpt = torch.load(path, map_location="cpu")
-        if "model" in ckpt:
-            ckpt = ckpt["model"]
-        opt = OrderedDict()
-        opt["weight"] = {}
-        for key in ckpt.keys():
-            if "enc_q" in key:
-                continue
-            opt["weight"][key] = ckpt[key].half()
-        if sr == "40k":
-            opt["config"] = [
-                1025,
-                32,
-                192,
-                192,
-                768,
-                2,
-                6,
-                3,
-                0,
-                "1",
-                [3, 7, 11],
-                [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                [10, 10, 2, 2],
-                512,
-                [16, 16, 4, 4],
-                109,
-                256,
-                40000,
-            ]
-        elif sr == "48k":
-            if version == "v1":
-                opt["config"] = [
-                    1025,
-                    32,
-                    192,
-                    192,
-                    768,
-                    2,
-                    6,
-                    3,
-                    0,
-                    "1",
-                    [3, 7, 11],
-                    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                    [10, 6, 2, 2, 2],
-                    512,
-                    [16, 16, 4, 4, 4],
-                    109,
-                    256,
-                    48000,
-                ]
-            else:
-                opt["config"] = [
-                    1025,
-                    32,
-                    192,
-                    192,
-                    768,
-                    2,
-                    6,
-                    3,
-                    0,
-                    "1",
-                    [3, 7, 11],
-                    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                    [12, 10, 2, 2],
-                    512,
-                    [24, 20, 4, 4],
-                    109,
-                    256,
-                    48000,
-                ]
-        elif sr == "32k":
-            if version == "v1":
-                opt["config"] = [
-                    513,
-                    32,
-                    192,
-                    192,
-                    768,
-                    2,
-                    6,
-                    3,
-                    0,
-                    "1",
-                    [3, 7, 11],
-                    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                    [10, 4, 2, 2, 2],
-                    512,
-                    [16, 16, 4, 4, 4],
-                    109,
-                    256,
-                    32000,
-                ]
-            else:
-                opt["config"] = [
-                    513,
-                    32,
-                    192,
-                    192,
-                    768,
-                    2,
-                    6,
-                    3,
-                    0,
-                    "1",
-                    [3, 7, 11],
-                    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                    [10, 8, 2, 2],
-                    512,
-                    [20, 16, 4, 4],
-                    109,
-                    256,
-                    32000,
-                ]
-        if info == "":
-            info = "Extracted model."
-        opt["info"] = info
+        opt = _extract_weight_dict(ckpt)
+        opt["config"] = V2_48K_CONFIG.copy()
+        opt["info"] = info or "Extracted model."
         opt["version"] = version
         opt["sr"] = sr
         opt["f0"] = int(if_f0)
-        torch.save(opt, "assets/weights/%s.pth" % name)
+        torch.save(opt, f"assets/weights/{name}.pth")
         return "Success."
     except:
         return traceback.format_exc()
@@ -204,7 +136,7 @@ def change_info(path, info, name):
         ckpt["info"] = info
         if name == "":
             name = os.path.basename(path)
-        torch.save(ckpt, "assets/weights/%s" % name)
+        torch.save(ckpt, f"assets/weights/{name}")
         return "Success."
     except:
         return traceback.format_exc()
@@ -212,57 +144,54 @@ def change_info(path, info, name):
 
 def merge(path1, path2, alpha1, sr, f0, info, name, version):
     try:
+        _require_supported_settings(sr, version, 1)
+        if str(f0).lower() in {"0", "false", "none"}:
+            raise ValueError(
+                "Only f0-enabled models are supported in this simplified checkpoint script"
+            )
 
         def extract(ckpt):
-            a = ckpt["model"]
+            if "model" in ckpt:
+                ckpt = ckpt["model"]
+            elif "weight" in ckpt:
+                ckpt = ckpt["weight"]
             opt = OrderedDict()
             opt["weight"] = {}
-            for key in a.keys():
+            for key in ckpt.keys():
                 if "enc_q" in key:
                     continue
-                opt["weight"][key] = a[key]
-            return opt
+                opt["weight"][key] = ckpt[key]
+            return opt["weight"]
 
-        ckpt1 = torch.load(path1, map_location="cpu")
-        ckpt2 = torch.load(path2, map_location="cpu")
-        cfg = ckpt1["config"]
-        if "model" in ckpt1:
-            ckpt1 = extract(ckpt1)
-        else:
-            ckpt1 = ckpt1["weight"]
-        if "model" in ckpt2:
-            ckpt2 = extract(ckpt2)
-        else:
-            ckpt2 = ckpt2["weight"]
+        ckpt1_raw = torch.load(path1, map_location="cpu")
+        ckpt2_raw = torch.load(path2, map_location="cpu")
+        cfg = ckpt1_raw["config"] if "config" in ckpt1_raw else V2_48K_CONFIG.copy()
+        ckpt1 = extract(ckpt1_raw)
+        ckpt2 = extract(ckpt2_raw)
+
         if sorted(list(ckpt1.keys())) != sorted(list(ckpt2.keys())):
             return "Fail to merge the models. The model architectures are not the same."
+
         opt = OrderedDict()
         opt["weight"] = {}
         for key in ckpt1.keys():
-            # try:
             if key == "emb_g.weight" and ckpt1[key].shape != ckpt2[key].shape:
                 min_shape0 = min(ckpt1[key].shape[0], ckpt2[key].shape[0])
                 opt["weight"][key] = (
-                    alpha1 * (ckpt1[key][:min_shape0].float())
-                    + (1 - alpha1) * (ckpt2[key][:min_shape0].float())
+                    alpha1 * ckpt1[key][:min_shape0].float()
+                    + (1 - alpha1) * ckpt2[key][:min_shape0].float()
                 ).half()
             else:
                 opt["weight"][key] = (
-                    alpha1 * (ckpt1[key].float()) + (1 - alpha1) * (ckpt2[key].float())
+                    alpha1 * ckpt1[key].float() + (1 - alpha1) * ckpt2[key].float()
                 ).half()
-        # except:
-        #     pdb.set_trace()
+
         opt["config"] = cfg
-        """
-        if(sr=="40k"):opt["config"] = [1025, 32, 192, 192, 768, 2, 6, 3, 0, "1", [3, 7, 11], [[1, 3, 5], [1, 3, 5], [1, 3, 5]], [10, 10, 2, 2], 512, [16, 16, 4, 4,4], 109, 256, 40000]
-        elif(sr=="48k"):opt["config"] = [1025, 32, 192, 192, 768, 2, 6, 3, 0, "1", [3, 7, 11], [[1, 3, 5], [1, 3, 5], [1, 3, 5]], [10,6,2,2,2], 512, [16, 16, 4, 4], 109, 256, 48000]
-        elif(sr=="32k"):opt["config"] = [513, 32, 192, 192, 768, 2, 6, 3, 0, "1", [3, 7, 11], [[1, 3, 5], [1, 3, 5], [1, 3, 5]], [10, 4, 2, 2, 2], 512, [16, 16, 4, 4,4], 109, 256, 32000]
-        """
         opt["sr"] = sr
-        opt["f0"] = 1 if f0 == i18n("是") else 0
+        opt["f0"] = 1
         opt["version"] = version
         opt["info"] = info
-        torch.save(opt, "assets/weights/%s.pth" % name)
+        torch.save(opt, f"assets/weights/{name}.pth")
         return "Success."
     except:
         return traceback.format_exc()
