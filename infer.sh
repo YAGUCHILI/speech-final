@@ -47,8 +47,11 @@ fi
 # 步骤2: 分离人声和伴奏
 echo "[步骤2/4] 分离人声和伴奏..."
 
-chmod +x separate.sh
-./separate.sh
+rm -rf  tmp_uvr5 
+rm -rf vocals/*
+rm -rf accoms/*
+chmod +x uvr5.sh
+./uvr5.sh
 
 # 步骤3: 批量推理（处理人声和伴奏都存在的所有文件）
 echo "[步骤3/4] 开始批量推理..."

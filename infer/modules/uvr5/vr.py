@@ -57,6 +57,78 @@ def load_audio_with_ffmpeg(music_file, target_sr, dtype=np.float32, res_type=Non
                     pass
 
 
+def load_audio_with_ffmpeg(music_file, target_sr, dtype=np.float32, res_type=None):
+    """Load audio with librosa, then soundfile, then ffmpeg as a final fallback."""
+    try:
+        y, sr = librosa.core.load(
+            music_file,
+            sr=target_sr,
+            mono=False,
+            dtype=dtype,
+            res_type=res_type,
+        )
+        return y, sr
+    except Exception as e:
+        logger.warning("librosa load failed for %s: %s", music_file, e)
+
+    try:
+        y, sr = sf.read(music_file, dtype="float32", always_2d=True)
+        y = y.T.astype(dtype, copy=False)
+        if sr != target_sr:
+            y = librosa.core.resample(
+                y,
+                orig_sr=sr,
+                target_sr=target_sr,
+                res_type=res_type,
+                axis=-1,
+            )
+            sr = target_sr
+        return y, sr
+    except Exception as e:
+        logger.warning("soundfile load failed for %s: %s", music_file, e)
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        cmd = [
+            "ffmpeg",
+            "-i",
+            music_file,
+            "-ar",
+            str(target_sr),
+            "-ac",
+            "2",
+            "-sample_fmt",
+            "pcm_s16le",
+            "-y",
+            tmp_path,
+        ]
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        y, sr = librosa.core.load(
+            tmp_path,
+            sr=target_sr,
+            mono=False,
+            dtype=dtype,
+            res_type=res_type,
+        )
+        return y, sr
+    except subprocess.CalledProcessError as e:
+        logger.error(
+            "ffmpeg conversion failed for %s\nstdout:\n%s\nstderr:\n%s",
+            music_file,
+            (e.stdout or "").strip(),
+            (e.stderr or "").strip(),
+        )
+        raise
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+
 class AudioPre:
     def __init__(self, agg, model_path, device, is_half, tta=False):
         self.model_path = model_path
@@ -111,8 +183,8 @@ class AudioPre:
             else:  # lower bands
                 X_wave[d] = librosa.core.resample(
                     X_wave[d + 1],
-                    self.mp.param["band"][d + 1]["sr"],
-                    bp["sr"],
+                    orig_sr=self.mp.param["band"][d + 1]["sr"],
+                    target_sr=bp["sr"],
                     res_type=bp["res_type"],
                 )
             # Stft of wave source
@@ -289,8 +361,8 @@ class AudioPreDeEcho:
             else:  # lower bands
                 X_wave[d] = librosa.core.resample(
                     X_wave[d + 1],
-                    self.mp.param["band"][d + 1]["sr"],
-                    bp["sr"],
+                    orig_sr=self.mp.param["band"][d + 1]["sr"],
+                    target_sr=bp["sr"],
                     res_type=bp["res_type"],
                 )
             # Stft of wave source

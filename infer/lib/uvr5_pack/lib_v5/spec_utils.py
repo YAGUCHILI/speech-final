@@ -43,8 +43,8 @@ def wave_to_spectrogram(
         wave_left = np.asfortranarray(wave[0])
         wave_right = np.asfortranarray(wave[1])
 
-    spec_left = librosa.stft(wave_left, n_fft, hop_length=hop_length)
-    spec_right = librosa.stft(wave_right, n_fft, hop_length=hop_length)
+    spec_left = librosa.stft(y=wave_left, n_fft=n_fft, hop_length=hop_length)
+    spec_right = librosa.stft(y=wave_right, n_fft=n_fft, hop_length=hop_length)
 
     spec = np.asfortranarray([spec_left, spec_right])
 
@@ -78,7 +78,7 @@ def wave_to_spectrogram_mt(
         kwargs={"y": wave_left, "n_fft": n_fft, "hop_length": hop_length},
     )
     thread.start()
-    spec_right = librosa.stft(wave_right, n_fft, hop_length=hop_length)
+    spec_right = librosa.stft(y=wave_right, n_fft=n_fft, hop_length=hop_length)
     thread.join()
 
     spec = np.asfortranarray([spec_left, spec_right])
@@ -230,26 +230,30 @@ def cache_or_load(mix_path, inst_path, mp):
 
             if d == len(mp.param["band"]):  # high-end band
                 X_wave[d], _ = librosa.load(
-                    mix_path, bp["sr"], False, dtype=np.float32, res_type=bp["res_type"]
+                    mix_path,
+                    sr=bp["sr"],
+                    mono=False,
+                    dtype=np.float32,
+                    res_type=bp["res_type"],
                 )
                 y_wave[d], _ = librosa.load(
                     inst_path,
-                    bp["sr"],
-                    False,
+                    sr=bp["sr"],
+                    mono=False,
                     dtype=np.float32,
                     res_type=bp["res_type"],
                 )
             else:  # lower bands
                 X_wave[d] = librosa.resample(
                     X_wave[d + 1],
-                    mp.param["band"][d + 1]["sr"],
-                    bp["sr"],
+                    orig_sr=mp.param["band"][d + 1]["sr"],
+                    target_sr=bp["sr"],
                     res_type=bp["res_type"],
                 )
                 y_wave[d] = librosa.resample(
                     y_wave[d + 1],
-                    mp.param["band"][d + 1]["sr"],
-                    bp["sr"],
+                    orig_sr=mp.param["band"][d + 1]["sr"],
+                    target_sr=bp["sr"],
                     res_type=bp["res_type"],
                 )
 
@@ -289,11 +293,14 @@ def cache_or_load(mix_path, inst_path, mp):
 
 
 def spectrogram_to_wave(spec, hop_length, mid_side, mid_side_b2, reverse):
+    spec = np.nan_to_num(spec, nan=0.0, posinf=0.0, neginf=0.0)
     spec_left = np.asfortranarray(spec[0])
     spec_right = np.asfortranarray(spec[1])
 
     wave_left = librosa.istft(spec_left, hop_length=hop_length)
     wave_right = librosa.istft(spec_right, hop_length=hop_length)
+    wave_left = np.nan_to_num(wave_left, nan=0.0, posinf=0.0, neginf=0.0)
+    wave_right = np.nan_to_num(wave_right, nan=0.0, posinf=0.0, neginf=0.0)
 
     if reverse:
         return np.asfortranarray([np.flip(wave_left), np.flip(wave_right)])
@@ -315,6 +322,7 @@ def spectrogram_to_wave(spec, hop_length, mid_side, mid_side_b2, reverse):
 def spectrogram_to_wave_mt(spec, hop_length, mid_side, reverse, mid_side_b2):
     import threading
 
+    spec = np.nan_to_num(spec, nan=0.0, posinf=0.0, neginf=0.0)
     spec_left = np.asfortranarray(spec[0])
     spec_right = np.asfortranarray(spec[1])
 
@@ -328,6 +336,8 @@ def spectrogram_to_wave_mt(spec, hop_length, mid_side, reverse, mid_side_b2):
     thread.start()
     wave_right = librosa.istft(spec_right, hop_length=hop_length)
     thread.join()
+    wave_left = np.nan_to_num(wave_left, nan=0.0, posinf=0.0, neginf=0.0)
+    wave_right = np.nan_to_num(wave_right, nan=0.0, posinf=0.0, neginf=0.0)
 
     if reverse:
         return np.asfortranarray([np.flip(wave_left), np.flip(wave_right)])
@@ -393,16 +403,20 @@ def cmb_spectrogram_to_wave(spec_m, mp, extra_bins_h=None, extra_bins=None):
             sr = mp.param["band"][d + 1]["sr"]
             if d == 1:  # lower
                 spec_s = fft_lp_filter(spec_s, bp["lpf_start"], bp["lpf_stop"])
+                wave_low = spectrogram_to_wave(
+                    spec_s,
+                    bp["hl"],
+                    mp.param["mid_side"],
+                    mp.param["mid_side_b2"],
+                    mp.param["reverse"],
+                )
+                wave_low = np.nan_to_num(
+                    wave_low, nan=0.0, posinf=0.0, neginf=0.0
+                )
                 wave = librosa.resample(
-                    spectrogram_to_wave(
-                        spec_s,
-                        bp["hl"],
-                        mp.param["mid_side"],
-                        mp.param["mid_side_b2"],
-                        mp.param["reverse"],
-                    ),
-                    bp["sr"],
-                    sr,
+                    wave_low,
+                    orig_sr=bp["sr"],
+                    target_sr=sr,
                     res_type="sinc_fastest",
                 )
             else:  # mid
@@ -418,8 +432,16 @@ def cmb_spectrogram_to_wave(spec_m, mp, extra_bins_h=None, extra_bins=None):
                         mp.param["reverse"],
                     ),
                 )
-                # wave = librosa.core.resample(wave2, bp['sr'], sr, res_type="sinc_fastest")
-                wave = librosa.core.resample(wave2, bp["sr"], sr, res_type="scipy")
+                # wave = librosa.core.resample(
+                #     wave2, orig_sr=bp["sr"], target_sr=sr, res_type="sinc_fastest"
+                # )
+                wave2 = np.nan_to_num(wave2, nan=0.0, posinf=0.0, neginf=0.0)
+                wave = librosa.core.resample(
+                    wave2,
+                    orig_sr=bp["sr"],
+                    target_sr=sr,
+                    res_type="scipy",
+                )
 
     return wave.T
 
@@ -431,6 +453,7 @@ def fft_lp_filter(spec, bin_start, bin_stop):
         spec[:, b, :] = g * spec[:, b, :]
 
     spec[:, bin_stop:, :] *= 0
+    spec = np.nan_to_num(spec, nan=0.0, posinf=0.0, neginf=0.0)
 
     return spec
 
@@ -442,6 +465,7 @@ def fft_hp_filter(spec, bin_start, bin_stop):
         spec[:, b, :] = g * spec[:, b, :]
 
     spec[:, 0 : bin_stop + 1, :] *= 0
+    spec = np.nan_to_num(spec, nan=0.0, posinf=0.0, neginf=0.0)
 
     return spec
 
@@ -506,8 +530,8 @@ def ensembling(a, specs):
 def stft(wave, nfft, hl):
     wave_left = np.asfortranarray(wave[0])
     wave_right = np.asfortranarray(wave[1])
-    spec_left = librosa.stft(wave_left, nfft, hop_length=hl)
-    spec_right = librosa.stft(wave_right, nfft, hop_length=hl)
+    spec_left = librosa.stft(y=wave_left, n_fft=nfft, hop_length=hl)
+    spec_right = librosa.stft(y=wave_right, n_fft=nfft, hop_length=hl)
     spec = np.asfortranarray([spec_left, spec_right])
 
     return spec
@@ -569,8 +593,8 @@ if __name__ == "__main__":
             if d == len(mp.param["band"]):  # high-end band
                 wave[d], _ = librosa.load(
                     args.input[i],
-                    bp["sr"],
-                    False,
+                    sr=bp["sr"],
+                    mono=False,
                     dtype=np.float32,
                     res_type=bp["res_type"],
                 )
@@ -580,8 +604,8 @@ if __name__ == "__main__":
             else:  # lower bands
                 wave[d] = librosa.resample(
                     wave[d + 1],
-                    mp.param["band"][d + 1]["sr"],
-                    bp["sr"],
+                    orig_sr=mp.param["band"][d + 1]["sr"],
+                    target_sr=bp["sr"],
                     res_type=bp["res_type"],
                 )
 

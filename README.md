@@ -26,7 +26,8 @@
 │       └── uvr5 
 ├── myinfer-v2.py # 推理用文件
 ├── requirements.txt # 注意 版本可能与环境不兼容，这个requirements是我使用的可运行环境
-├── separate.sh # 将音乐分离人声与伴奏
+├── run_uvr5_pipeline.py # 用uvr5工具分离人声和伴奏
+├── uvr5.sh # 将音乐分离人声与伴奏的脚本
 ├── test-audio # 测试音乐（人声与伴奏未分离版）
 ├── tools
 │   ├── download_models.py # 官方给出下载模型的代码
@@ -38,7 +39,7 @@
 
 ## 需要自行完善的内容
 - 由于上传限制，assets文件夹没有上传，需要手动调用 download_models.py 进行下载，下载到根目录即可。
-- 项目结构中的 rvc 是我选用的数据集，未上传，可自行在根目录建立文件夹放入自己的数据集 使用 .wav 格式最佳
+- 选用的数据集未上传，可自行在根目录建立文件夹放入自己的数据集 使用 .wav 格式最佳
 - 请自行在根目录新建 logs 文件夹（保存特征、模型日志和检查点等重要内容）,并把config.json 放入logs中
 
 ## 安装依赖
