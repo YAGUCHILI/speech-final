@@ -1,14 +1,14 @@
 # config.sh
 
 # 模型名字
-EXP_NAME="my_models_fdt"
+EXP_NAME="my_models_fdt2"
 
 # ========================== 训练配置 ===========================
 # 训练集路径
 TRAIN_FILE="fdt"
 # 训练参数
 BATCH_SIZE=32
-TOTAL_EPOCH=160
+TOTAL_EPOCH=120
 SR="48k"
 VERSION="v2"
 GPU=0
@@ -35,7 +35,7 @@ INDEX_PREFIX="added_index"
 # 模型相关路径
 INDEX_FILE="logs/$EXP_NAME/added_index.index"
 # 自己选择模型
-MODEL_WEIGHT="assets/weights/my_models_dlj_e160_s4800.pth"
+MODEL_WEIGHT="assets/weights/my_models_fdt2_e40_s1240.pth"
 
 # 分离人声伴奏输出路径
 VOCAL_DIR="vocals"
